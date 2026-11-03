@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Central PCP | Acesso</title><style>
+:root{color-scheme:dark;font-family:Inter,system-ui,Arial,sans-serif}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 10%,#142c4a,#070e1b 60%);color:#edf5ff;display:grid;place-items:center;padding:22px}.panel{width:min(440px,100%);background:#101c30;border:1px solid #29415e;border-radius:18px;padding:30px;box-shadow:0 20px 65px #0008}.eyebrow{color:#43d7ce;font-size:12px;letter-spacing:2px;font-weight:800}h1{font-size:28px;margin:12px 0 6px}p{color:#a9c0df;line-height:1.5}label{display:block;margin:17px 0 6px;font-size:13px;color:#c5d7ed}input{width:100%;padding:13px 14px;background:#081324;color:#fff;border:1px solid #38506c;border-radius:9px;font-size:15px}button{width:100%;padding:13px;background:linear-gradient(90deg,#4098ff,#43d5cd);border:0;border-radius:9px;color:#071424;font-weight:800;cursor:pointer;margin-top:19px}button:disabled{opacity:.55;cursor:wait}.secondary{background:transparent;border:1px solid #39516d;color:#d3e8ff;margin-top:10px}.message{min-height:24px;font-size:13px;margin-top:14px;color:#e6c985;white-space:pre-wrap}.hide{display:none}.foot{text-align:center;font-size:12px;margin-top:24px}
+</style></head><body><main class="panel"><div class="eyebrow">OPERAÇÕES • PCP</div><h1>Central PCP Online</h1><p id="intro">Acesso exclusivo a usuários autorizados.</p><form id="form"><div id="emailBox"><label for="email">E-mail corporativo</label><input id="email" type="email" autocomplete="email" required></div><label for="password" id="passwordLabel">Senha</label><input id="password" type="password" autocomplete="current-password" minlength="6" required><button id="submit" type="submit">Entrar na Central PCP</button></form><button class="secondary" id="forgot" type="button">Esqueci minha senha</button><button class="secondary hide" id="back" type="button">Voltar ao login</button><button class="secondary hide" id="logout" type="button">Sair da conta</button><div class="message" id="message" role="status" aria-live="polite"></div><p class="foot">Central PCP • Acesso controlado</p></main>
+<script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SUPABASE_URL='https://ytlrzbamdrljnmvduohs.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_ibERh9Nz4K9zq2hnXIXrug_WLonkAv1';
+const HOME='./index.html';
+const callbackParams=new URLSearchParams(location.search);
+const callbackHash=new URLSearchParams(location.hash.slice(1));
+const isPasswordFlow=['recovery','invite'].includes(callbackParams.get('type')) || ['recovery','invite'].includes(callbackHash.get('type')) || callbackParams.has('token_hash') || callbackParams.has('code');
+const $=id=>document.getElementById(id), msg=t=>$('message').textContent=t;
+let mode='login';
+let passwordFlow=isPasswordFlow;
+if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(SUPABASE_URL)){msg('Configuração pendente: copie a Project URL exata do painel Supabase e cole na linha SUPABASE_URL deste arquivo.');$('submit').disabled=true;throw Error('Project URL não configurada')}
+if(!SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')){msg('Configuração pendente: copie a Publishable key do Supabase.');$('submit').disabled=true;throw Error('Publishable key inválida')}
+const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
+function setMode(next){mode=next;const recovery=mode==='recovery',update=mode==='update';$('emailBox').classList.toggle('hide',update);$('password').classList.toggle('hide',recovery);$('passwordLabel').classList.toggle('hide',recovery);$('password').required=!recovery;$('password').autocomplete=update?'new-password':'current-password';$('submit').textContent=recovery?'Enviar recuperação':update?'Definir nova senha':'Entrar na Central PCP';$('forgot').classList.toggle('hide',mode!=='login');$('back').classList.toggle('hide',mode==='login');$('intro').textContent=update?'Defina sua senha para concluir o acesso.':recovery?'Enviaremos um link para seu e-mail.':'Acesso exclusivo a usuários autorizados.';msg('')}
+$('forgot').onclick=()=>setMode('recovery');$('back').onclick=()=>setMode('login');$('logout').onclick=async()=>{await supabase.auth.signOut();$('logout').classList.add('hide');setMode('login')};
+function safeError(error){const message=error?.message||'Não foi possível concluir. Tente novamente.';msg(/failed to fetch|networkerror|name_not_resolved/i.test(message)?'Não foi possível acessar o Supabase. Verifique se a Project URL configurada neste arquivo é idêntica à exibida no painel Supabase. Detalhe: '+message:message)}
+$('form').onsubmit=async e=>{e.preventDefault();$('submit').disabled=true;msg('Aguarde...');try{const email=$('email').value.trim(),password=$('password').value;if(mode==='recovery'){const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:new URL('auth_corrigido.html',location.href).href});if(error)throw error;msg('Se a conta estiver cadastrada, você receberá um e-mail com instruções.')}else if(mode==='update'){const {data:{session}}=await supabase.auth.getSession();if(!session)throw Error('Sessão de recuperação inválida. Solicite um novo link.');const {error}=await supabase.auth.updateUser({password});if(error)throw error;passwordFlow=false;setMode('login');msg('Senha definida com sucesso! Agora entre com seu e-mail e sua nova senha.');$('password').value='';$('logout').classList.remove('hide')}else{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;location.assign(HOME)}}catch(error){safeError(error)}finally{$('submit').disabled=false}};
+const params=callbackParams,hash=callbackHash;
+const callbackError=params.get('error_description')||hash.get('error_description');
+if(callbackError)msg(callbackError.replace(/\\+/g,' '));
+if(isPasswordFlow)setMode('update');
+supabase.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){passwordFlow=true;setMode('update');}
+  else if(event==='SIGNED_IN' && passwordFlow){setMode('update');}
+  if(session)$('logout').classList.remove('hide');
+});
+try {
+  if(params.get('token_hash') && params.get('type')){
+    const {error}=await supabase.auth.verifyOtp({token_hash:params.get('token_hash'),type:params.get('type')});
+    if(error)throw error;
+    passwordFlow=true;setMode('update');
+  }
+  const {data:{session},error}=await supabase.auth.getSession();
+  if(error)throw error;
+  if(session){
+    $('logout').classList.remove('hide');
+    if(passwordFlow)setMode('update');
+    else if(mode==='login')msg('Sessão ativa. Se você já tem senha, entre na Central PCP.');
+  }else if(passwordFlow && !callbackError){
+    msg('O link ainda não gerou uma sessão válida. Solicite um novo link de recuperação.');
+    $('submit').disabled=true;
+  }
+}catch(error){safeError(error)}
+</script></body></html>
