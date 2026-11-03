@@ -4,8 +4,8 @@
 </style></head><body><main class="panel"><div class="eyebrow">OPERAÇÕES • PCP</div><h1>Central PCP Online</h1><p id="intro">Acesso exclusivo a usuários autorizados.</p><form id="form"><div id="emailBox"><label for="email">E-mail corporativo</label><input id="email" type="email" autocomplete="email" required></div><label for="password" id="passwordLabel">Senha</label><input id="password" type="password" autocomplete="current-password" minlength="6" required><button id="submit" type="submit">Entrar na Central PCP</button></form><button class="secondary" id="forgot" type="button">Esqueci minha senha</button><button class="secondary hide" id="back" type="button">Voltar ao login</button><button class="secondary hide" id="logout" type="button">Sair da conta</button><div class="message" id="message" role="status" aria-live="polite"></div><p class="foot">Central PCP • Acesso controlado</p></main>
 <script type="module">
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const SUPABASE_URL='https://ytlrzbamdrIjnmvduohs.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY='sb_publishable_ibERh9Nz4K9zq2hnXIXrug_WLonkAv1';
+const SUPABASE_URL='https://ytlrzbamdrljnmvduohs.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='https://ytlrzbamdrljnmvduohs.supabase.co';
 const HOME='./index.html';
 const callbackParams=new URLSearchParams(location.search);
 const callbackHash=new URLSearchParams(location.hash.slice(1));
